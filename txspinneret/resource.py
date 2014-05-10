@@ -70,6 +70,10 @@ class SpinneretResource(Resource, object):
     `IResource.getChildWithDefault
     <twisted:twisted.web.resource.IResource.getChildWithDefault>`.
     """
+    def __init__(self, spinnertStyleResource):
+        self.resource = spinneretStyleResource
+
+
     def _adaptToResource(self, result):
         """
         Adapt a result to `IResource`.
@@ -85,6 +89,10 @@ class SpinneretResource(Resource, object):
         """
         if result is None:
             return NotFound()
+
+        spinneretResource = ISpinneretResource(result, None)
+        if spinneretResource is not None:
+            return SpinneretResource(spinneretResource)
 
         renderable = IRenderable(result, None)
         if renderable is not None:
@@ -107,7 +115,7 @@ class SpinneretResource(Resource, object):
             return result
 
         segments = request.prepath[-1:] + request.postpath
-        d = maybeDeferred(self.locateChild, request, segments)
+        d = maybeDeferred(self.resource.locateChild, request, segments)
         d.addCallback(_setSegments)
         d.addCallback(self._adaptToResource)
         return DeferredResource(d)
@@ -142,29 +150,14 @@ class SpinneretResource(Resource, object):
 
 
     def render(self, request):
+        # Copied from t.w.resource.Resource.render :(
+        m = getattr(self, 'render_' + nativeString(request.method), None)
+        if not m:
+            ## ??
+            raise UnsuportedMethod([])
         return self._handleRenderResult(
             request,
-            super(SpinneretResource, self).render(request))
-
-
-    def locateChild(self, request, segments):
-        """
-        Locate another object which can be adapted to `IResource`.
-
-        :type  request: `IRequest`
-        :param request: Request.
-
-        :type  segments: ``sequence`` of `bytes`
-        :param segments: Sequence of strings giving the remaining query
-            segments to resolve.
-
-        :rtype: 2-`tuple` of `IResource`, `IRendable` or `URLPath` and
-            a ``sequence`` of `bytes`
-        :return: Pair of an `IResource`, `IRendable` or `URLPath` and
-            a sequence of the remaining path segments to be process, or
-            a `Deferred` containing the aforementioned result.
-        """
-        return NotFound(), []
+            m(request))
 
 
 

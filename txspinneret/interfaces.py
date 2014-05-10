@@ -18,3 +18,9 @@ class INegotiableResource(IResource):
         `list` of `bytes` indicating the content types this resource is capable
         of accepting.
         """)
+
+class ISpinneretResource(Interface):
+    def locateChild(request, segments):
+        pass
+    def render_???(self, request):
+        pass
